@@ -4,6 +4,7 @@ namespace Gloudemans\Shoppingcart;
 
 use Illuminate\Contracts\Support\Arrayable;
 use Gloudemans\Shoppingcart\Contracts\Buyable;
+use Gloudemans\Shoppingcart\Contracts\Discountable;
 use Illuminate\Contracts\Support\Jsonable;
 
 use Illuminate\Support\Arr;
@@ -242,6 +243,22 @@ class CartItem implements Arrayable, Jsonable
         $this->taxRate = $taxRate;
 
         return $this;
+    }
+
+    public function setDiscount($percentage)
+    {
+        $this->discount = $percentage;
+
+        return $this;
+    }
+
+    public function discountedPrice()
+    {
+        if ($this->discount > 0) {
+            return $this->price - ($this->price * ($this->discount / 100));
+        }
+
+        return $this->price;
     }
 
     /**

@@ -4,6 +4,7 @@ namespace Gloudemans\Shoppingcart;
 
 use Carbon\Carbon;
 use Closure;
+use Gloudemans\Shoppingcart\Contracts\Discountable;
 use Illuminate\Database\Connection;
 use Illuminate\Support\Collection;
 use Illuminate\Session\SessionManager;
@@ -113,6 +114,10 @@ class Cart
 
         if ($content->has($cartItem->rowId)) {
             $cartItem->qty += $content->get($cartItem->rowId)->qty;
+        }
+
+        if ($this->globalDiscount > 0) {
+            $item->setDiscount($this->globalDiscount);
         }
 
         $content->put($cartItem->rowId, $cartItem);
@@ -282,7 +287,7 @@ class Cart
         $content = $this->getContent();
 
         $total = $content->reduce(function ($total, CartItem $cartItem) {
-            return $total + ($cartItem->qty * $cartItem->priceTax);
+            return $total + ($cartItem->qty * $cartItem->discountedPrice());
         }, 0);
 
         $totalCost = $this->extraCosts->reduce(function ($total, $cost) {
@@ -292,6 +297,21 @@ class Cart
         $total += $totalCost;
 
         return $this->numberFormat($total);
+    }
+
+    public function applyDiscount($percentage)
+    {
+        $this->globalDiscount = $percentage; // STORE GLOBAL DISCOUNT
+
+        foreach ($this->getContent() as $item) {
+            $product = $item->associatedModel::find($item->id);
+            if ($product instanceof \Gloudemans\Shoppingcart\Contracts\Discountable) {
+                // Apply discount using the associated model
+                $item->setDiscount($percentage);
+            }
+        }
+
+        return $this;
     }
 
     /**
