@@ -100,20 +100,20 @@ class Cart
      * @param array     $options
      * @return CartItem
      */
-    public function add($id, $name = null, $qty = null, $price = null, array $options = [])
+    public function add($product, $qty = null, array $options = [])
     {
-        if ($this->isMulti($id)) {
-            return array_map(function ($item) {
-                return $this->add($item);
-            }, $id);
-        }
 
-        $cartItem = $this->createCartItem($id, $name, $qty, $price, $options);
+        $cartItem = $this->createCartItem($product, $qty, $options);
 
         $content = $this->getContent();
 
+        //turn this into pipeline?
         if ($content->has($cartItem->rowId)) {
             $cartItem->qty += $content->get($cartItem->rowId)->qty;
+        }
+
+        if ($content->has($cartItem->rowId)) {
+            $cartItem->discount = $content->get($cartItem->rowId)->discount;
         }
 
         if ($this->globalDiscount > 0) {
@@ -301,12 +301,11 @@ class Cart
 
     public function applyDiscount($percentage)
     {
-        $this->globalDiscount = $percentage; // STORE GLOBAL DISCOUNT
+        $this->globalDiscount = $percentage;
 
         foreach ($this->getContent() as $item) {
             $product = $item->associatedModel::find($item->id);
-            if ($product instanceof \Gloudemans\Shoppingcart\Contracts\Discountable) {
-                // Apply discount using the associated model
+            if ($product instanceof Discountable) {
                 $item->setDiscount($percentage);
             }
         }
@@ -610,18 +609,14 @@ class Cart
      * @param array     $options
      * @return CartItem
      */
-    private function createCartItem($id, $name, $qty, $price, array $options)
+    private function createCartItem($product, $qty, array $options)
     {
-        if ($id instanceof Buyable) {
-            $cartItem = CartItem::fromBuyable($id, $qty ?: []);
-            $cartItem->setQuantity($name ?: 1);
-            $cartItem->associate($id);
-        } elseif (is_array($id)) {
-            $cartItem = CartItem::fromArray($id);
-            $cartItem->setQuantity($id['qty']);
+        if ($product instanceof Buyable) {
+            $cartItem = CartItem::fromBuyable($product, $options ?: []);
+            $cartItem->setQuantity($qty ?: 1);
+            $cartItem->associate($product);
         } else {
-            $cartItem = CartItem::fromAttributes($id, $name, $price, $options);
-            $cartItem->setQuantity($qty);
+            //TODO return error
         }
 
         $cartItem->setTaxRate(config('cart.tax'));
