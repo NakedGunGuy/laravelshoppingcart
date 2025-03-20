@@ -1,6 +1,6 @@
 <?php
 
-namespace Gloudemans\Shoppingcart;
+namespace Gloudemans\Shoppingcart\Traits;
 
 trait CanBeBought
 {
