@@ -6,6 +6,6 @@ class CanBeDiscounted
 {
     public function isDiscountable(): bool
     {
-        return true; // Default behavior, can be overridden in the model
+        return $this->getAttribute('is_discountable');
     }
 }
